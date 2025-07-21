@@ -1,0 +1,116 @@
+module.exports = {
+  //REGISTER
+  async register(ctx) {
+    try {
+      const {
+        email,
+        password,
+        confirmPassword,
+        firstName,
+        lastName,
+        username,
+      } = ctx.request.body;
+
+      if (
+        !email ||
+        !password ||
+        !confirmPassword ||
+        !firstName ||
+        !lastName ||
+        !username
+      ) {
+        return ctx.badRequest("All fields are required!");
+      }
+
+      if (password !== confirmPassword) {
+        return ctx.badRequest("Passwords do not match!");
+      }
+
+      const existingUser = await strapi
+        .query("plugin::users-permissions.user")
+        .findOne({ where: { email } });
+
+      if (existingUser) {
+        return ctx.badRequest("Email already registered!");
+      }
+
+      const newUser = await strapi.plugins[
+        "users-permissions"
+      ].services.user.add({
+        email,
+        password,
+        firstName,
+        lastName,
+        username,
+        confirmed: true,
+        blocked: false,
+      });
+
+      return ctx.send({
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        username: newUser.username,
+      });
+    } catch (err) {
+      console.error("Registration error:", err);
+      return ctx.internalServerError("Registration error!");
+    }
+  },
+
+  //LOGIN
+  async login(ctx) {
+    try {
+      const { identifier, password } = ctx.request.body;
+
+      if (!identifier || !password) {
+        return ctx.badRequest("Username or email and password are required!");
+      }
+
+      const user = await strapi
+        .query("plugin::users-permissions.user")
+        .findOne({
+          where: {
+            $or: [{ email: identifier }, { username: identifier }],
+          },
+        });
+
+      if (!user) {
+        return ctx.badRequest("User not found!");
+      }
+
+      if (user.blocked) {
+        return ctx.forbidden("Your account is blocked!");
+      }
+
+      const validPassword = await strapi.plugins[
+        "users-permissions"
+      ].services.user.validatePassword(password, user.password);
+
+      if (!validPassword) {
+        return ctx.badRequest("Invalid credentials!");
+      }
+
+      const token = await strapi.plugins[
+        "users-permissions"
+      ].services.jwt.issue({
+        id: user.id,
+      });
+
+      return ctx.send({
+        jwt: token,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      });
+    } catch (err) {
+      console.error("Login error:", err);
+      return ctx.internalServerError("Login error!");
+    }
+  },
+};
