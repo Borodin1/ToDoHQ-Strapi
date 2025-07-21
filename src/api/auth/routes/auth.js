@@ -17,5 +17,13 @@ module.exports = {
         auth: false,
       },
     },
+    {
+      method: "PUT",
+      path: "/auth/update-profile",
+      handler: "auth.updateProfile",
+      config: {
+        auth: { scope: [] },
+      },
+    },
   ],
 };

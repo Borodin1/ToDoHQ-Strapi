@@ -4,7 +4,7 @@ const { createCoreController } = require("@strapi/strapi").factories;
 
 module.exports = createCoreController("api::todo.todo", ({ strapi }) => ({
   async find(ctx) {
-    console.log("🔍 ctx.state.user:", ctx.state.user); // Логируем пользователя
+    console.log("🔍 ctx.state.user:", ctx.state.user);
     const userId = ctx.state.user?.id;
     if (!userId) {
       return ctx.unauthorized("You must be logged in.");
@@ -18,7 +18,7 @@ module.exports = createCoreController("api::todo.todo", ({ strapi }) => ({
   },
   async create(ctx) {
     const { title, description, priority, completed } = ctx.request.body.data;
-    console.log("🔍 ctx.state.user:", ctx.state.user); // Логируем пользователя
+    console.log("🔍 ctx.state.user:", ctx.state.user);
 
     const data = {
       title,
@@ -34,7 +34,16 @@ module.exports = createCoreController("api::todo.todo", ({ strapi }) => ({
   },
   async update(ctx) {
     const { id } = ctx.params;
-    const { title, description, priority, completed } = ctx.request.body;
+    const { data } = ctx.request.body;
+    const { title, description, priority, completed } = data;
+
+    console.log("Received update request for ID:", id);
+    console.log("Request body:", ctx.request.body);
+    console.log("Extracted fields:");
+    console.log("  title:", title);
+    console.log("  description:", description);
+    console.log("  priority:", priority);
+    console.log("  completed:", completed);
 
     const updatedTodo = await strapi.entityService.update(
       "api::todo.todo",

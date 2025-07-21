@@ -113,4 +113,68 @@ module.exports = {
       return ctx.internalServerError("Login error!");
     }
   },
+
+  //Update User
+  async updateProfile(ctx) {
+    try {
+      const userId = ctx.state.user.id;
+      const { firstName, lastName, username, email } = ctx.request.body;
+      console.log("updateProfile request body:", ctx.request.body);
+
+      const user = await strapi
+        .query("plugin::users-permissions.user")
+        .findOne({ where: { id: userId } });
+
+      if (!user) {
+        return ctx.notFound("User not found!");
+      }
+
+      if (email && email !== user.email) {
+        const existingEmail = await strapi
+          .query("plugin::users-permissions.user")
+          .findOne({ where: { email } });
+
+        if (existingEmail) {
+          return ctx.badRequest("Email already taken!");
+        }
+      }
+
+      if (username && username !== user.username) {
+        const existingUsername = await strapi
+          .query("plugin::users-permissions.user")
+          .findOne({ where: { username } });
+
+        if (existingUsername) {
+          return ctx.badRequest("Username already taken!");
+        }
+      }
+
+      const updateData = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (username !== undefined) updateData.username = username;
+      if (email !== undefined) updateData.email = email;
+
+      if (Object.keys(updateData).length === 0) {
+        return ctx.badRequest("No data provided to update!");
+      }
+
+      const updatedUser = await strapi
+        .query("plugin::users-permissions.user")
+        .update({
+          where: { id: userId },
+          data: updateData,
+        });
+
+      return ctx.send({
+        email: updatedUser.email,
+        username: updatedUser.username,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+      });
+    } catch (err) {
+      console.error("Update profile error:", err);
+      return ctx.internalServerError("Could not update profile!");
+    }
+  },
 };
