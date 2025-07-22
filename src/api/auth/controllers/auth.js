@@ -34,6 +34,10 @@ module.exports = {
         return ctx.badRequest("Email already registered!");
       }
 
+      const authenticatedRole = await strapi
+        .query("plugin::users-permissions.role")
+        .findOne({ where: { type: "authenticated" } });
+
       const newUser = await strapi.plugins[
         "users-permissions"
       ].services.user.add({
@@ -44,6 +48,7 @@ module.exports = {
         username,
         confirmed: true,
         blocked: false,
+        role: authenticatedRole.id,
       });
 
       return ctx.send({
